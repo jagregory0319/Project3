@@ -1,6 +1,8 @@
 
 #Data Cleaning and Wrangling 
-
+import pandas as pd
+import numpy as np
+df=pd.read_csv ('Running log.csv')
 
 
 
