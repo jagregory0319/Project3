@@ -3,6 +3,11 @@
 import pandas as pd
 import numpy as np
 df=pd.read_csv ('Running log.csv')
+#Parsing Date Column
+df['Date'] = pd.to_datetime(df['Date'])
+df['Date'] = df['Date'].dt.date
+#Filter specefied rows 
+
 
 
 
