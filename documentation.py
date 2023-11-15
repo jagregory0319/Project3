@@ -16,6 +16,8 @@ columns_to_keep = ['Activity Type', 'Date', 'Title', 'Distance', 'Time', 'Avg HR
 df_cleaned = df[columns_to_keep]
 
 
+
+
  # Graph visualization of breakdown of activities and number of days for each 
 
 activity_counts = df_cleaned['Activity Type'].value_counts()
@@ -40,15 +42,130 @@ plt.show()
 
 
 
- # Graph visualization of frequency of activities over certain periods of time
+
+
+ # Line Chart visualization of frequency of activities over certain periods of time
+
+df_cleaned_copy['Year'] = pd.to_datetime(df_cleaned_copy['Date']).dt.year
+
+df_filtered = df_cleaned_copy[df_cleaned_copy['Year'].isin([2020, 2021, 2022, 2023])]
+
+top_activities = df_filtered['Activity Type'].value_counts().nlargest(5).index
+
+df_top_activities = df_filtered[df_filtered['Activity Type'].isin(top_activities)]
+
+activity_year_count_top = df_top_activities.groupby(['Year', 'Activity Type']).size().reset_index(name='Count')
+
+plt.figure(figsize=(15, 10))
+
+for activity_type in top_activities:
+    subset = activity_year_count_top[activity_year_count_top['Activity Type'] == activity_type]
+    plt.plot(subset['Year'], subset['Count'], marker='o', label=activity_type)
+
+plt.title('Changing Frequency of Top 5 Activities (2020-2023)')
+plt.xlabel('Year')
+plt.ylabel('Frequency of Activities')
+plt.xticks([2020, 2021, 2022, 2023])
+plt.legend(title='Activity Type')
+plt.grid(True)
+
+plt.show()
 
 
 
 
 
- # Graph visualization of performance improvement/regression over period of time 
+# Stacked bar charts visualization of frequency of activities over certain periods of time
+
+df_cleaned_copy['Year'] = pd.to_datetime(df_cleaned_copy['Date']).dt.year
+
+df_filtered = df_cleaned_copy[df_cleaned_copy['Year'].isin([2020, 2021, 2022, 2023])]
+
+top_activities = df_filtered['Activity Type'].value_counts().nlargest(5).index
+
+df_top_activities = df_filtered[df_filtered['Activity Type'].isin(top_activities)]
+
+activity_year_count_top = df_top_activities.groupby(['Year', 'Activity Type']).size().reset_index(name='Count')
+
+activity_pivot = activity_year_count_top.pivot(index='Year', columns='Activity Type', values='Count').fillna(0)
+
+activity_pivot.plot(kind='bar', stacked=True, figsize=(12, 8))
+
+plt.title('Frequency of Top 5 Activities (2020-2023)')
+plt.xlabel('Year')
+plt.ylabel('Frequency of Activities')
+plt.xticks(rotation=45)
+
+plt.show()
 
 
+
+
+# Area chart visualization of frequency of activities over certain periods of time
+
+df_cleaned_copy['Year'] = pd.to_datetime(df_cleaned_copy['Date']).dt.year
+
+df_filtered = df_cleaned_copy[df_cleaned_copy['Year'].isin([2020, 2021, 2022, 2023])]
+
+top_activities = df_filtered['Activity Type'].value_counts().nlargest(5).index
+
+df_top_activities = df_filtered[df_filtered['Activity Type'].isin(top_activities)]
+
+activity_year_count_top = df_top_activities.groupby(['Year', 'Activity Type']).size().reset_index(name='Count')
+
+activity_pivot = activity_year_count_top.pivot(index='Year', columns='Activity Type', values='Count').fillna(0)
+
+plt.figure(figsize=(12, 8))
+for activity in top_activities:
+    plt.fill_between(activity_pivot.index, activity_pivot[activity], label=activity, alpha=0.5)
+
+plt.title('Frequency of Top 5 Activities (2020-2023)')
+plt.xlabel('Year')
+plt.ylabel('Frequency of Activities')
+plt.xticks([2020, 2021, 2022, 2023])
+plt.legend(title='Activity Type')
+
+plt.show()
+
+
+
+
+
+# Graph visualization of performance improvement/regression over period of time using Avg Pace indicator among Running activities
+
+# Create a copy to avoid modifying the original DataFrame
+df_running = df_cleaned_copy.copy()
+
+# Filtering for the years 2020 to 2023 and Running activities
+df_running = df_running[(df_running['Year'].isin([2020, 2021, 2022, 2023])) & 
+                        (df_running['Activity Type'] == 'Running')]
+
+# Function to convert 'mm:ss' to minutes
+def convert_pace_to_minutes(pace_str):
+    try:
+        minutes, seconds = map(int, pace_str.split(':'))
+        return minutes + seconds / 60
+    except:
+        return None  
+
+df_running['Avg Pace Numeric'] = df_running['Avg Pace'].apply(convert_pace_to_minutes)
+
+average_pace_per_year = df_running.groupby('Year')['Avg Pace Numeric'].mean()
+
+plt.figure(figsize=(10, 6))
+line_plot = average_pace_per_year.plot(kind='line', marker='o', color='blue')
+
+# Adding the values of the average pace on the graph with an offset to avoid overlap with the line
+offset = (average_pace_per_year.max() - average_pace_per_year.min()) * 0.02  # offset as 3% of range
+for x, y in average_pace_per_year.items():
+    plt.text(x, y + offset, f"{y:.2f}", fontsize=10, verticalalignment='bottom', horizontalalignment='center', color='black')
+
+plt.title('Average Pace of Running Activities (2020-2023)')
+plt.xlabel('Year')
+plt.ylabel('Average Pace (minutes per kilometer)')
+plt.xticks([2020, 2021, 2022, 2023])
+
+plt.show()
 
 
 
