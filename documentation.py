@@ -7,8 +7,6 @@ df=pd.read_csv ('Running log.csv')
 df['Date'] = pd.to_datetime(df['Date'])
 df['Date'] = df['Date'].dt.date
 
-#Filter specefied rows 
-
 #Removing last 18 rows of data
 df = df.iloc[:-18]
 #Selecting the columns
@@ -167,6 +165,43 @@ plt.xticks([2020, 2021, 2022, 2023])
 
 plt.show()
 
+
+#Frequency of Activity Type during COVID (2020-2021)
+df_cleaned['Year'] = pd.to_datetime(df_cleaned['Date']).dt.year
+
+df_filtered = df_cleaned[df_cleaned['Year'].isin([2020, 2021])]
+
+activity_counts_over_years = df_filtered.groupby(['Year', 'Activity Type']).size().reset_index(name='Count')
+
+plt.figure(figsize=(15, 10))
+
+for activity_type in df_filtered['Activity Type'].unique():
+    subset = activity_counts_over_years[activity_counts_over_years['Activity Type'] == activity_type]
+    plt.plot(subset['Year'], subset['Count'], marker='o', label=activity_type)
+
+plt.title('Frequency of Activities (2020-2021)')
+plt.xlabel('Year')
+plt.ylabel('Frequency of Activities')
+plt.xticks([2020, 2021])
+plt.legend(title='Activity Type')
+plt.grid(True)
+
+plt.show()
+
+
+# Avg HR for each activity
+avg_hr_by_activity = df_cleaned.groupby('Activity Type')['Avg HR'].mean().reset_index()
+
+avg_hr_by_activity = avg_hr_by_activity.sort_values(by='Avg HR', ascending=False)
+
+plt.figure(figsize=(12, 8))
+plt.bar(avg_hr_by_activity['Activity Type'], avg_hr_by_activity['Avg HR'], color='skyblue')
+plt.title('Average Heart Rate by Activity Type')
+plt.xlabel('Activity Type')
+plt.ylabel('Average Heart Rate')
+plt.xticks(rotation=45, ha='right')
+
+plt.show()
 
 
  #  Predictive model to estimate times for upcoming races based on previous performance
