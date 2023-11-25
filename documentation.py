@@ -298,6 +298,52 @@ predicted_pace_mm_ss = seconds_to_pace(predicted_pace_seconds)
 print("Predicted Average Pace:", predicted_pace_mm_ss, "per kilometer")
 
 
+#Predictive Model for Avg HR based on Time, Distance and Total Ascent
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error
+df=pd.read_csv ('Running log.csv')
+#Parsing Date Column
+df['Date'] = pd.to_datetime(df['Date'])
+df['Date'] = df['Date'].dt.date
+#Removing last 18 rows of data
+df = df.iloc[:-18]
+#Selecting the columns
+columns_to_keep = ['Activity Type', 'Date', 'Title', 'Distance', 'Time', 'Avg HR', 'Avg Pace', 'Total Ascent']
+df_cleaned = df[columns_to_keep]
+df_cleaned = df_cleaned.replace('--', pd.NA)
+df_cleaned = df_cleaned.dropna(subset=['Distance', 'Time', 'Avg HR', 'Total Ascent'], how='any')
+df_cleaned['Time'] = pd.to_timedelta(df_cleaned['Time']).dt.total_seconds()
+df_cleaned['Total Ascent'] = pd.to_numeric(df_cleaned['Total Ascent'].str.replace(',', ''), errors='coerce')
+df_cleaned = df_cleaned.dropna(subset=['Distance', 'Time', 'Avg HR', 'Total Ascent'], how='any')
+
+
+X = df_cleaned[['Distance', 'Time', 'Total Ascent']]
+y = df_cleaned['Avg HR']
+
+# Split the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Initialize the linear regression model
+model = LinearRegression()
+
+# Fit the model to the training data
+model.fit(X_train, y_train)
+
+# Make predictions on the test set
+y_pred = model.predict(X_test)
+
+# Evaluate the model
+mse = mean_squared_error(y_test, y_pred)
+print(f'Mean Squared Error: {mse}')
+
+# Print the coefficients and intercept
+print('Coefficients:', model.coef_)
+print('Intercept:', model.intercept_)
+
 
 # Graph visualization of predictive model.
 
