@@ -265,6 +265,38 @@ print('R-squared:', r2)
 
 
 
+#Testing the model
+
+# Hypothetical data for a 10km race with 150 meters total ascent
+hypothetical_data = {
+    'Distance': [10],  # 10 kilometers
+    'Total Seconds': [0],  # placeholder, will not be used in prediction
+    'Total Ascent': [50]  # 50 meters of total ascent
+}
+
+# Creating a DataFrame from the hypothetical data
+df_predict = pd.DataFrame(hypothetical_data)
+
+# Predicting the average pace using the model
+predicted_pace_seconds = model.predict(df_predict)[0]  # [0] to extract the single prediction value
+
+# Display the predicted average pace in seconds per kilometer
+print("Predicted Average Pace (seconds per kilometer):", predicted_pace_seconds)
+
+# Converting the result in to mm:ss format
+
+# Function to convert seconds to mm:ss format
+def seconds_to_pace(seconds):
+    minutes = seconds // 60
+    seconds = seconds % 60
+    return f"{int(minutes):02d}:{int(seconds):02d}"
+
+# Example: Converting the predicted pace from seconds to mm:ss per km format
+predicted_pace_seconds = 230.68  # Replace with your predicted value
+predicted_pace_mm_ss = seconds_to_pace(predicted_pace_seconds)
+
+print("Predicted Average Pace:", predicted_pace_mm_ss, "per kilometer")
+
 
 
 # Graph visualization of predictive model.
