@@ -204,7 +204,65 @@ plt.xticks(rotation=45, ha='right')
 plt.show()
 
 
- #  Predictive model to estimate times for upcoming races based on previous performance
+
+
+ #  Predictive model (RandomForestRegressor) to estimate average pace for upcoming races based on previous performance
+
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_squared_error, r2_score
+import numpy as np
+
+if df_cleaned['Total Ascent'].dtype == object:
+    df_cleaned['Total Ascent'] = pd.to_numeric(df_cleaned['Total Ascent'].str.replace(',', ''), errors='coerce')
+else:
+    df_cleaned['Total Ascent'] = pd.to_numeric(df_cleaned['Total Ascent'], errors='coerce')
+
+# Filter for running activities with total ascent below 100
+df_running = df_cleaned[(df_cleaned['Activity Type'] == 'Running') & (df_cleaned['Total Ascent'] < 100)]
+
+# Convert 'Time' to total seconds for duration
+df_running['Total Seconds'] = pd.to_timedelta(df_running['Time']).dt.total_seconds()
+
+# Convert 'Avg Pace' to total seconds
+def pace_to_seconds(pace_str):
+    if isinstance(pace_str, str):
+        minutes, seconds = map(int, pace_str.split(':'))
+        return minutes * 60 + seconds
+    return np.nan
+
+df_running['Avg Pace Seconds'] = df_running['Avg Pace'].apply(pace_to_seconds)
+
+# Handle non-numeric values for 'Distance'
+df_running['Distance'] = pd.to_numeric(df_running['Distance'], errors='coerce')
+
+# Dropping rows with missing values
+df_running_clean = df_running.dropna(subset=['Distance', 'Total Seconds', 'Total Ascent', 'Avg Pace Seconds'])
+
+# Features and target
+features = ['Distance', 'Total Seconds', 'Total Ascent']
+target = 'Avg Pace Seconds'
+
+# Splitting the data
+X = df_running_clean[features]
+y = df_running_clean[target]
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# RandomForestRegressor
+model = RandomForestRegressor(n_estimators=100, random_state=42)
+model.fit(X_train, y_train)
+
+# Predicting and evaluating
+y_pred = model.predict(X_test)
+mse = mean_squared_error(y_test, y_pred)
+rmse = np.sqrt(mse)
+r2 = r2_score(y_test, y_pred)
+
+print('RMSE:', rmse)
+print('R-squared:', r2)
+
 
 
 
