@@ -292,7 +292,7 @@ def seconds_to_pace(seconds):
     return f"{int(minutes):02d}:{int(seconds):02d}"
 
 # Example: Converting the predicted pace from seconds to mm:ss per km format
-predicted_pace_seconds = 230.68  # Replace with your predicted value
+predicted_pace_seconds = 230.68 
 predicted_pace_mm_ss = seconds_to_pace(predicted_pace_seconds)
 
 print("Predicted Average Pace:", predicted_pace_mm_ss, "per kilometer")
@@ -345,8 +345,138 @@ print('Coefficients:', model.coef_)
 print('Intercept:', model.intercept_)
 
 
-# Graph visualization of predictive model.
+# Graph visualization of predictive model for Avg HR
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error
+df=pd.read_csv ('Running log.csv')
+#Parsing Date Column
+df['Date'] = pd.to_datetime(df['Date'])
+df['Date'] = df['Date'].dt.date
+#Removing last 18 rows of data
+df = df.iloc[:-18]
+#Selecting the columns
+columns_to_keep = ['Activity Type', 'Date', 'Title', 'Distance', 'Time', 'Avg HR', 'Avg Pace', 'Total Ascent']
+df_cleaned = df[columns_to_keep]
+df_cleaned = df_cleaned.replace('--', pd.NA)
+df_cleaned = df_cleaned.dropna(subset=['Distance', 'Time', 'Avg HR', 'Total Ascent'], how='any')
+df_cleaned['Time'] = pd.to_timedelta(df_cleaned['Time']).dt.total_seconds()
+df_cleaned['Total Ascent'] = pd.to_numeric(df_cleaned['Total Ascent'].str.replace(',', ''), errors='coerce')
+df_cleaned = df_cleaned.dropna(subset=['Distance', 'Time', 'Avg HR', 'Total Ascent'], how='any')
 
 
+X = df_cleaned[['Distance', 'Time', 'Total Ascent']]
+y = df_cleaned['Avg HR']
 
+# Split the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Initialize the linear regression model
+model = LinearRegression()
+
+# Fit the model to the training data
+model.fit(X_train, y_train)
+
+# Make predictions on the test set
+y_pred = model.predict(X_test)
+
+# Evaluate the model
+mse = mean_squared_error(y_test, y_pred)
+print(f'Mean Squared Error: {mse}')
+
+# Print the coefficients and intercept
+print('Coefficients:', model.coef_)
+print('Intercept:', model.intercept_)
+
+#Scatter Plot for Actual vs Predicted Avg HR
+plt.scatter(y_test, y_pred)
+plt.xlabel("Actual Avg HR")
+plt.ylabel("Predicted Avg HR")
+plt.title("Actual vs. Predicted Avg HR")
+plt.show()
+
+# Histrogram of Distribution Errors
+differences = y_test - y_pred
+
+plt.hist(differences, bins=30, edgecolor='black')
+plt.xlabel("Residuals (Actual - Predicted)")
+plt.ylabel("Frequency")
+plt.title("Histogram of Residuals")
+plt.show()
+
+# Graph visualization of predictive model for Avg Pace 
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_squared_error, r2_score
+import numpy as np
+import matplotlib.pyplot as plt
+
+
+if df_cleaned['Total Ascent'].dtype == object:
+    df_cleaned['Total Ascent'] = pd.to_numeric(df_cleaned['Total Ascent'].str.replace(',', ''), errors='coerce')
+else:
+    df_cleaned['Total Ascent'] = pd.to_numeric(df_cleaned['Total Ascent'], errors='coerce')
+
+# Filter for running activities with total ascent below 100
+df_running = df_cleaned[(df_cleaned['Activity Type'] == 'Running') & (df_cleaned['Total Ascent'] < 100)]
+
+# Convert 'Time' to total seconds for duration
+df_running['Total Seconds'] = pd.to_timedelta(df_running['Time']).dt.total_seconds()
+
+# Convert 'Avg Pace' to total seconds
+def pace_to_seconds(pace_str):
+    if isinstance(pace_str, str):
+        minutes, seconds = map(int, pace_str.split(':'))
+        return minutes * 60 + seconds
+    return np.nan
+
+df_running['Avg Pace Seconds'] = df_running['Avg Pace'].apply(pace_to_seconds)
+
+# Handle non-numeric values for 'Distance'
+df_running['Distance'] = pd.to_numeric(df_running['Distance'], errors='coerce')
+
+# Dropping rows with missing values
+df_running_clean = df_running.dropna(subset=['Distance', 'Total Seconds', 'Total Ascent', 'Avg Pace Seconds'])
+
+# Features and target
+features = ['Distance', 'Total Seconds', 'Total Ascent']
+target = 'Avg Pace Seconds'
+
+# Splitting the data
+X = df_running_clean[features]
+y = df_running_clean[target]
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# RandomForestRegressor
+model = RandomForestRegressor(n_estimators=100, random_state=42)
+model.fit(X_train, y_train)
+
+# Predicting and evaluating
+y_pred = model.predict(X_test)
+mse = mean_squared_error(y_test, y_pred)
+rmse = np.sqrt(mse)
+r2 = r2_score(y_test, y_pred)
+
+print('RMSE:', rmse)
+print('R-squared:', r2)
+
+#Scatter Plot for Actual vs Predicted Avg Pace 
+plt.scatter(y_test, y_pred)
+plt.xlabel("Actual Avg Pace (Seconds)")
+plt.ylabel("Predicted Avg Pace (Seconds)")
+plt.title("Actual vs. Predicted Avg Pace")
+plt.show()
+
+#Histogram of Distribution Errors
+difference = y_test - y_pred
+
+plt.hist(difference, bins=30, edgecolor='black')
+plt.xlabel("Actual - Predicted")
+plt.ylabel("Frequency")
+plt.title("Distribution Erros")
+plt.show()
 
