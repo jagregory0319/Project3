@@ -477,6 +477,6 @@ difference = y_test - y_pred
 plt.hist(difference, bins=30, edgecolor='black')
 plt.xlabel("Actual - Predicted")
 plt.ylabel("Frequency")
-plt.title("Distribution Erros")
+plt.title("Distribution Errors")
 plt.show()
 
