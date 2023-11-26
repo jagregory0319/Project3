@@ -118,39 +118,102 @@ plt.show()
 
 # Graph visualization of performance improvement/regression over period of time using Avg Pace indicator among Running activities
 
-# Create a copy to avoid modifying the original DataFrame
-df_running = df_cleaned_copy.copy()
+# A gpraph to show changes in average pace for Running activities over the past years in minutes/mile
+import matplotlib.pyplot as plt
 
-# Filtering for the years 2020 to 2023 and Running activities
-df_running = df_running[(df_running['Year'].isin([2020, 2021, 2022, 2023])) & 
-                        (df_running['Activity Type'] == 'Running')]
+# Assuming df_running is your DataFrame with the necessary columns
 
+# Function to convert 'mm:ss' to minutes per kilometer, then to minutes per mile
+def convert_pace_to_minutes_per_mile(pace_str):
+    try:
+        minutes, seconds = map(int, pace_str.split(':'))
+        pace_per_km = minutes + seconds / 60
+        pace_per_mile = pace_per_km * 1.60934  # converting km to miles
+        return pace_per_mile
+    except:
+        return None
+
+# Function to convert minutes to 'mm:ss' format
+def convert_minutes_to_mm_ss(minutes):
+    total_seconds = int(minutes * 60)
+    mm = total_seconds // 60
+    ss = total_seconds % 60
+    return f"{mm:02d}:{ss:02d}"
+
+df_running['Avg Pace Numeric Miles'] = df_running['Avg Pace'].apply(convert_pace_to_minutes_per_mile)
+
+average_pace_per_year_miles = df_running.groupby('Year')['Avg Pace Numeric Miles'].mean()
+
+# Convert average pace from minutes to 'mm:ss' format
+average_pace_per_year_miles_formatted = average_pace_per_year_miles.apply(convert_minutes_to_mm_ss)
+
+plt.figure(figsize=(10, 6))
+line_plot = average_pace_per_year_miles.plot(kind='line', marker='o', color='blue')
+
+# Adding the values of the average pace on the graph with an offset to avoid overlap with the line
+offset = (average_pace_per_year_miles.max() - average_pace_per_year_miles.min()) * 0.02  # offset as 2% of range
+for x, y in zip(average_pace_per_year_miles.index, average_pace_per_year_miles):
+    formatted_pace = convert_minutes_to_mm_ss(y)
+    plt.text(x, y + offset, formatted_pace, fontsize=10, verticalalignment='bottom', horizontalalignment='center', color='black')
+
+plt.title('Average Pace of Running Activities (2020-2023)')
+plt.xlabel('Year')
+plt.ylabel('Average Pace (minutes per mile)')
+plt.xticks([2020, 2021, 2022, 2023])
+
+plt.show()
+
+
+
+# A gpraph to show changes in average pace for Running activities over the past years in minutes/km
 # Function to convert 'mm:ss' to minutes
+# Convert pace to minutes
 def convert_pace_to_minutes(pace_str):
     try:
         minutes, seconds = map(int, pace_str.split(':'))
         return minutes + seconds / 60
     except:
-        return None  
+        return None
 
+# Convert minutes to 'mm:ss' format
+def convert_minutes_to_mm_ss(minutes):
+    total_seconds = int(minutes * 60)
+    mm = total_seconds // 60
+    ss = total_seconds % 60
+    return f"{mm:02d}:{ss:02d}"
+    
+# Apply conversion to DataFrame
 df_running['Avg Pace Numeric'] = df_running['Avg Pace'].apply(convert_pace_to_minutes)
 
+# Calculate average pace per year
 average_pace_per_year = df_running.groupby('Year')['Avg Pace Numeric'].mean()
 
+# Convert average pace from minutes to 'mm:ss' format
+average_pace_per_year_formatted = average_pace_per_year.apply(convert_minutes_to_mm_ss)
+
+# Create the line plot
 plt.figure(figsize=(10, 6))
 line_plot = average_pace_per_year.plot(kind='line', marker='o', color='blue')
 
-# Adding the values of the average pace on the graph with an offset to avoid overlap with the line
-offset = (average_pace_per_year.max() - average_pace_per_year.min()) * 0.02  # offset as 3% of range
+# Adding the values of the average pace on the graph
+offset = (average_pace_per_year.max() - average_pace_per_year.min()) * 0.02  # offset as 2% of range
 for x, y in average_pace_per_year.items():
-    plt.text(x, y + offset, f"{y:.2f}", fontsize=10, verticalalignment='bottom', horizontalalignment='center', color='black')
+    formatted_pace = convert_minutes_to_mm_ss(y)
+    plt.text(x, y + offset, formatted_pace, fontsize=10, verticalalignment='bottom', horizontalalignment='center', color='black')
 
+# Set chart details
 plt.title('Average Pace of Running Activities (2020-2023)')
 plt.xlabel('Year')
 plt.ylabel('Average Pace (minutes per kilometer)')
 plt.xticks([2020, 2021, 2022, 2023])
 
+# Display the plot
 plt.show()
+
+
+
+
+
 
 
 #Frequency of Activity Type during COVID (2020-2021)
