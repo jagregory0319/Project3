@@ -44,22 +44,23 @@ plt.show()
 
  # Line Chart visualization of frequency of activities over certain periods of time
 
-df_cleaned_copy['Year'] = pd.to_datetime(df_cleaned_copy['Date']).dt.year
+import matplotlib.pyplot as plt
 
-df_filtered = df_cleaned_copy[df_cleaned_copy['Year'].isin([2020, 2021, 2022, 2023])]
+# Assuming df_cleaned and other processing steps are already done
 
-top_activities = df_filtered['Activity Type'].value_counts().nlargest(5).index
-
-df_top_activities = df_filtered[df_filtered['Activity Type'].isin(top_activities)]
-
-activity_year_count_top = df_top_activities.groupby(['Year', 'Activity Type']).size().reset_index(name='Count')
-
+# Create the figure
 plt.figure(figsize=(15, 10))
 
+# Plotting each activity type
 for activity_type in top_activities:
     subset = activity_year_count_top[activity_year_count_top['Activity Type'] == activity_type]
     plt.plot(subset['Year'], subset['Count'], marker='o', label=activity_type)
+    
+    # Annotate each point with the count value
+    for i, row in subset.iterrows():
+        plt.annotate(str(row['Count']), (row['Year'], row['Count']), textcoords="offset points", xytext=(0,10), ha='center')
 
+# Setting the chart title and labels
 plt.title('Changing Frequency of Top 5 Activities (2020-2023)')
 plt.xlabel('Year')
 plt.ylabel('Frequency of Activities')
@@ -67,6 +68,7 @@ plt.xticks([2020, 2021, 2022, 2023])
 plt.legend(title='Activity Type')
 plt.grid(True)
 
+# Show the plot
 plt.show()
 
 
@@ -75,9 +77,9 @@ plt.show()
 
 # Stacked bar charts visualization of frequency of activities over certain periods of time
 
-df_cleaned_copy['Year'] = pd.to_datetime(df_cleaned_copy['Date']).dt.year
+df_cleaned['Year'] = pd.to_datetime(df_cleaned['Date']).dt.year
 
-df_filtered = df_cleaned_copy[df_cleaned_copy['Year'].isin([2020, 2021, 2022, 2023])]
+df_filtered = df_cleaned[df_cleaned['Year'].isin([2020, 2021, 2022, 2023])]
 
 top_activities = df_filtered['Activity Type'].value_counts().nlargest(5).index
 
@@ -87,43 +89,28 @@ activity_year_count_top = df_top_activities.groupby(['Year', 'Activity Type']).s
 
 activity_pivot = activity_year_count_top.pivot(index='Year', columns='Activity Type', values='Count').fillna(0)
 
-activity_pivot.plot(kind='bar', stacked=True, figsize=(12, 8))
+# Plotting the stacked bar chart
+ax = activity_pivot.plot(kind='bar', stacked=True, figsize=(12, 8))
 
+# Adding annotations for each bar
+for p in ax.patches:
+    width = p.get_width()
+    height = p.get_height()
+    x, y = p.get_xy() 
+    if height > 0:  # To avoid displaying annotations for empty bars
+        ax.annotate(f'{int(height)}', (x + width/2, y + height/2), ha='center')
+
+# Setting the chart title and labels
 plt.title('Frequency of Top 5 Activities (2020-2023)')
 plt.xlabel('Year')
 plt.ylabel('Frequency of Activities')
 plt.xticks(rotation=45)
 
+# Show the plot
 plt.show()
 
 
 
-
-# Area chart visualization of frequency of activities over certain periods of time
-
-df_cleaned_copy['Year'] = pd.to_datetime(df_cleaned_copy['Date']).dt.year
-
-df_filtered = df_cleaned_copy[df_cleaned_copy['Year'].isin([2020, 2021, 2022, 2023])]
-
-top_activities = df_filtered['Activity Type'].value_counts().nlargest(5).index
-
-df_top_activities = df_filtered[df_filtered['Activity Type'].isin(top_activities)]
-
-activity_year_count_top = df_top_activities.groupby(['Year', 'Activity Type']).size().reset_index(name='Count')
-
-activity_pivot = activity_year_count_top.pivot(index='Year', columns='Activity Type', values='Count').fillna(0)
-
-plt.figure(figsize=(12, 8))
-for activity in top_activities:
-    plt.fill_between(activity_pivot.index, activity_pivot[activity], label=activity, alpha=0.5)
-
-plt.title('Frequency of Top 5 Activities (2020-2023)')
-plt.xlabel('Year')
-plt.ylabel('Frequency of Activities')
-plt.xticks([2020, 2021, 2022, 2023])
-plt.legend(title='Activity Type')
-
-plt.show()
 
 
 
