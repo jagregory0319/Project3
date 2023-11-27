@@ -165,6 +165,10 @@ plt.show()
 
 
 
+
+
+
+
 # A gpraph to show changes in average pace for Running activities over the past years in minutes/km
 # Function to convert 'mm:ss' to minutes
 # Convert pace to minutes
@@ -264,88 +268,120 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error, r2_score
 import numpy as np
-
-if df_cleaned['Total Ascent'].dtype == object:
-    df_cleaned['Total Ascent'] = pd.to_numeric(df_cleaned['Total Ascent'].str.replace(',', ''), errors='coerce')
-else:
-    df_cleaned['Total Ascent'] = pd.to_numeric(df_cleaned['Total Ascent'], errors='coerce')
-
-# Filter for running activities with total ascent below 100
-df_running = df_cleaned[(df_cleaned['Activity Type'] == 'Running') & (df_cleaned['Total Ascent'] < 100)]
-
+​
+df_running = df_cleaned[(df_cleaned['Activity Type'] == 'Running') & (df['Total Ascent'] < 100)]
+​
 # Convert 'Time' to total seconds for duration
 df_running['Total Seconds'] = pd.to_timedelta(df_running['Time']).dt.total_seconds()
-
+​
 # Convert 'Avg Pace' to total seconds
 def pace_to_seconds(pace_str):
     if isinstance(pace_str, str):
         minutes, seconds = map(int, pace_str.split(':'))
         return minutes * 60 + seconds
     return np.nan
-
-df_running['Avg Pace Seconds'] = df_running['Avg Pace'].apply(pace_to_seconds)
-
-# Handle non-numeric values for 'Distance'
+​
+# Handle non-numeric values for 'Total Ascent', 'Avg HR', and 'Distance'
+df_running['Total Ascent'] = pd.to_numeric(df_running['Total Ascent'].str.replace(',', ''), errors='coerce')
 df_running['Distance'] = pd.to_numeric(df_running['Distance'], errors='coerce')
-
+​
 # Dropping rows with missing values
-df_running_clean = df_running.dropna(subset=['Distance', 'Total Seconds', 'Total Ascent', 'Avg Pace Seconds'])
-
+df_running_clean = df_running.dropna(subset=['Distance', 'Total Ascent', 'Total Seconds'])
+​
 # Features and target
-features = ['Distance', 'Total Seconds', 'Total Ascent']
-target = 'Avg Pace Seconds'
-
+features = ['Distance', 'Total Ascent']
+target = 'Total Seconds'
+​
 # Splitting the data
 X = df_running_clean[features]
 y = df_running_clean[target]
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
+​
 # RandomForestRegressor
 model = RandomForestRegressor(n_estimators=100, random_state=42)
 model.fit(X_train, y_train)
-
+​
 # Predicting and evaluating
 y_pred = model.predict(X_test)
 mse = mean_squared_error(y_test, y_pred)
 rmse = np.sqrt(mse)
 r2 = r2_score(y_test, y_pred)
-
+​
 print('RMSE:', rmse)
 print('R-squared:', r2)
 
 
 
+
+
 #Testing the model
 
-# Hypothetical data for a 10km race with 150 meters total ascent
+# Hypothetical data for a 10km race with 50 meters total ascent
 hypothetical_data = {
-    'Distance': [10],  # 10 kilometers
-    'Total Seconds': [0],  # placeholder, will not be used in prediction
+    'Distance': [25],  # 25 kilometers
     'Total Ascent': [50]  # 50 meters of total ascent
 }
 
 # Creating a DataFrame from the hypothetical data
 df_predict = pd.DataFrame(hypothetical_data)
 
-# Predicting the average pace using the model
-predicted_pace_seconds = model.predict(df_predict)[0]  # [0] to extract the single prediction value
+# Predicting the total time in seconds using the model
+predicted_total_seconds = model.predict(df_predict)[0]
 
-# Display the predicted average pace in seconds per kilometer
-print("Predicted Average Pace (seconds per kilometer):", predicted_pace_seconds)
+# Calculating average pace in minutes per kilometer
+predicted_avg_pace_minutes = predicted_total_seconds / 60 / df_predict['Distance'][0]
 
-# Converting the result in to mm:ss format
+def convert_minutes_to_mm_ss(minutes):
+    total_seconds = int(minutes * 60)
+    mm = total_seconds // 60
+    ss = total_seconds % 60
+    return f"{mm:02d}:{ss:02d}"
 
-# Function to convert seconds to mm:ss format
-def seconds_to_pace(seconds):
-    minutes = seconds // 60
-    seconds = seconds % 60
-    return f"{int(minutes):02d}:{int(seconds):02d}"
+predicted_avg_pace_mm_ss = convert_minutes_to_mm_ss(predicted_avg_pace_minutes)
 
-# Example: Converting the predicted pace from seconds to mm:ss per km format
-predicted_pace_seconds = 230.68 
-predicted_pace_mm_ss = seconds_to_pace(predicted_pace_seconds)
+print("Predicted Average Pace (mm:ss per kilometer):", predicted_avg_pace_mm_ss)
 
-print("Predicted Average Pace:", predicted_pace_mm_ss, "per kilometer")
+
+
+# Illustrating the accuracy of the model
+import matplotlib.pyplot as plt
+
+# Assuming X_test contains the 'Distance' feature and y_test contains the actual 'Total Seconds'
+# Calculate the actual avg pace (in seconds per km)
+actual_avg_pace = y_test / X_test['Distance']
+
+# Predict the total seconds using the model for the test set
+predicted_total_seconds = model.predict(X_test)
+
+# Calculate the predicted avg pace (in seconds per km)
+predicted_avg_pace = predicted_total_seconds / X_test['Distance']
+
+# Convert avg pace from seconds per km to minutes per km for both actual and predicted
+actual_avg_pace_min = actual_avg_pace / 60
+predicted_avg_pace_min = predicted_avg_pace / 60
+
+# Create a scatter plot
+plt.figure(figsize=(10, 6))
+plt.scatter(actual_avg_pace_min, predicted_avg_pace_min, alpha=0.5)
+
+# Plot a line representing perfect predictions
+max_val = max(actual_avg_pace_min.max(), predicted_avg_pace_min.max())
+min_val = min(actual_avg_pace_min.min(), predicted_avg_pace_min.min())
+plt.plot([min_val, max_val], [min_val, max_val], 'k--', lw=2, label='Perfect Prediction')
+
+# Label the axes and the plot
+plt.xlabel('Actual Average Pace (minutes per km)')
+plt.ylabel('Predicted Average Pace (minutes per km)')
+plt.title('Actual vs. Predicted Average Pace')
+plt.legend()
+plt.show()
+
+
+
+
+
+
+
 
 
 #Predictive Model for Avg HR based on Time, Distance and Total Ascent
