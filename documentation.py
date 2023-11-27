@@ -3,20 +3,20 @@
 import pandas as pd
 import numpy as np
 df=pd.read_csv ('Running log.csv')
-#Parsing Date Column
+
 df['Date'] = pd.to_datetime(df['Date'])
 df['Date'] = df['Date'].dt.date
 
-#Removing last 18 rows of data
+#Removing last 18 rows of data (from previous user of the watch)
 df = df.iloc[:-18]
-#Selecting the columns
+#Selecting the columns we need
 columns_to_keep = ['Activity Type', 'Date', 'Title', 'Distance', 'Time', 'Avg HR', 'Avg Pace', 'Total Ascent']
 df_cleaned = df[columns_to_keep]
 
 
 
 
- # Graph visualization of breakdown of activities and number of days for each 
+# Graph visualization of breakdown of activities and number of days for each 
 
 activity_counts = df_cleaned['Activity Type'].value_counts()
 
@@ -42,13 +42,10 @@ plt.show()
 
 
 
- # Line Chart visualization of frequency of activities over certain periods of time
+# Line graph to show frequency of top-5 activities over the years
 
 import matplotlib.pyplot as plt
 
-# Assuming df_cleaned and other processing steps are already done
-
-# Create the figure
 plt.figure(figsize=(15, 10))
 
 # Plotting each activity type
@@ -60,7 +57,6 @@ for activity_type in top_activities:
     for i, row in subset.iterrows():
         plt.annotate(str(row['Count']), (row['Year'], row['Count']), textcoords="offset points", xytext=(0,10), ha='center')
 
-# Setting the chart title and labels
 plt.title('Changing Frequency of Top 5 Activities (2020-2023)')
 plt.xlabel('Year')
 plt.ylabel('Frequency of Activities')
@@ -68,14 +64,13 @@ plt.xticks([2020, 2021, 2022, 2023])
 plt.legend(title='Activity Type')
 plt.grid(True)
 
-# Show the plot
 plt.show()
 
 
 
 
 
-# Stacked bar charts visualization of frequency of activities over certain periods of time
+# A stacked bar chart to show frequency of top-5 activities over the years
 
 df_cleaned['Year'] = pd.to_datetime(df_cleaned['Date']).dt.year
 
@@ -89,7 +84,6 @@ activity_year_count_top = df_top_activities.groupby(['Year', 'Activity Type']).s
 
 activity_pivot = activity_year_count_top.pivot(index='Year', columns='Activity Type', values='Count').fillna(0)
 
-# Plotting the stacked bar chart
 ax = activity_pivot.plot(kind='bar', stacked=True, figsize=(12, 8))
 
 # Adding annotations for each bar
@@ -97,16 +91,14 @@ for p in ax.patches:
     width = p.get_width()
     height = p.get_height()
     x, y = p.get_xy() 
-    if height > 0:  # To avoid displaying annotations for empty bars
+    if height > 0:  
         ax.annotate(f'{int(height)}', (x + width/2, y + height/2), ha='center')
 
-# Setting the chart title and labels
 plt.title('Frequency of Top 5 Activities (2020-2023)')
 plt.xlabel('Year')
 plt.ylabel('Frequency of Activities')
 plt.xticks(rotation=45)
 
-# Show the plot
 plt.show()
 
 
@@ -116,19 +108,18 @@ plt.show()
 
 
 
-# Graph visualization of performance improvement/regression over period of time using Avg Pace indicator among Running activities
+
+
 
 # A gpraph to show changes in average pace for Running activities over the past years in minutes/mile
 import matplotlib.pyplot as plt
-
-# Assuming df_running is your DataFrame with the necessary columns
 
 # Function to convert 'mm:ss' to minutes per kilometer, then to minutes per mile
 def convert_pace_to_minutes_per_mile(pace_str):
     try:
         minutes, seconds = map(int, pace_str.split(':'))
         pace_per_km = minutes + seconds / 60
-        pace_per_mile = pace_per_km * 1.60934  # converting km to miles
+        pace_per_mile = pace_per_km * 1.60934  
         return pace_per_mile
     except:
         return None
@@ -170,7 +161,7 @@ plt.show()
 
 
 # A gpraph to show changes in average pace for Running activities over the past years in minutes/km
-# Function to convert 'mm:ss' to minutes
+
 # Convert pace to minutes
 def convert_pace_to_minutes(pace_str):
     try:
@@ -186,32 +177,26 @@ def convert_minutes_to_mm_ss(minutes):
     ss = total_seconds % 60
     return f"{mm:02d}:{ss:02d}"
     
-# Apply conversion to DataFrame
 df_running['Avg Pace Numeric'] = df_running['Avg Pace'].apply(convert_pace_to_minutes)
 
-# Calculate average pace per year
 average_pace_per_year = df_running.groupby('Year')['Avg Pace Numeric'].mean()
 
-# Convert average pace from minutes to 'mm:ss' format
 average_pace_per_year_formatted = average_pace_per_year.apply(convert_minutes_to_mm_ss)
 
-# Create the line plot
 plt.figure(figsize=(10, 6))
 line_plot = average_pace_per_year.plot(kind='line', marker='o', color='blue')
 
 # Adding the values of the average pace on the graph
-offset = (average_pace_per_year.max() - average_pace_per_year.min()) * 0.02  # offset as 2% of range
+offset = (average_pace_per_year.max() - average_pace_per_year.min()) * 0.02  
 for x, y in average_pace_per_year.items():
     formatted_pace = convert_minutes_to_mm_ss(y)
     plt.text(x, y + offset, formatted_pace, fontsize=10, verticalalignment='bottom', horizontalalignment='center', color='black')
 
-# Set chart details
 plt.title('Average Pace of Running Activities (2020-2023)')
 plt.xlabel('Year')
 plt.ylabel('Average Pace (minutes per kilometer)')
 plt.xticks([2020, 2021, 2022, 2023])
 
-# Display the plot
 plt.show()
 
 
@@ -260,7 +245,7 @@ plt.show()
 
 
 
- #  Predictive model (RandomForestRegressor) to estimate average pace for upcoming races based on previous performance
+#  Predictive model (RandomForestRegressor) to estimate average pace for upcoming races based on previous performance
 
 
 import pandas as pd
@@ -268,45 +253,37 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error, r2_score
 import numpy as np
-​
-df_running = df_cleaned[(df_cleaned['Activity Type'] == 'Running') & (df['Total Ascent'] < 100)]
-​
+
+# Convert 'Total Ascent' to numeric, handling any non-numeric strings
+df_cleaned['Total Ascent'] = pd.to_numeric(df_cleaned['Total Ascent'].astype(str).str.replace(',', ''), errors='coerce')
+# Using only Running activities of <100 m ascent to exclude trail running for training
+df_running = df_cleaned[(df_cleaned['Activity Type'] == 'Running') & (df_cleaned['Total Ascent'] < 100)]
+
 # Convert 'Time' to total seconds for duration
 df_running['Total Seconds'] = pd.to_timedelta(df_running['Time']).dt.total_seconds()
-​
-# Convert 'Avg Pace' to total seconds
-def pace_to_seconds(pace_str):
-    if isinstance(pace_str, str):
-        minutes, seconds = map(int, pace_str.split(':'))
-        return minutes * 60 + seconds
-    return np.nan
-​
-# Handle non-numeric values for 'Total Ascent', 'Avg HR', and 'Distance'
-df_running['Total Ascent'] = pd.to_numeric(df_running['Total Ascent'].str.replace(',', ''), errors='coerce')
-df_running['Distance'] = pd.to_numeric(df_running['Distance'], errors='coerce')
-​
+
 # Dropping rows with missing values
 df_running_clean = df_running.dropna(subset=['Distance', 'Total Ascent', 'Total Seconds'])
-​
+
 # Features and target
 features = ['Distance', 'Total Ascent']
 target = 'Total Seconds'
-​
+
 # Splitting the data
 X = df_running_clean[features]
 y = df_running_clean[target]
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-​
+
 # RandomForestRegressor
 model = RandomForestRegressor(n_estimators=100, random_state=42)
 model.fit(X_train, y_train)
-​
+
 # Predicting and evaluating
 y_pred = model.predict(X_test)
 mse = mean_squared_error(y_test, y_pred)
 rmse = np.sqrt(mse)
 r2 = r2_score(y_test, y_pred)
-​
+
 print('RMSE:', rmse)
 print('R-squared:', r2)
 
@@ -314,9 +291,10 @@ print('R-squared:', r2)
 
 
 
+
 #Testing the model
 
-# Hypothetical data for a 10km race with 50 meters total ascent
+# Hypothetical data for a 25km run with 50 meters total ascent
 hypothetical_data = {
     'Distance': [25],  # 25 kilometers
     'Total Ascent': [50]  # 50 meters of total ascent
@@ -343,10 +321,14 @@ print("Predicted Average Pace (mm:ss per kilometer):", predicted_avg_pace_mm_ss)
 
 
 
+
+
 # Illustrating the accuracy of the model
 import matplotlib.pyplot as plt
 
-# Assuming X_test contains the 'Distance' feature and y_test contains the actual 'Total Seconds'
+# Convert 'Distance' to numeric if it's not already
+X_test['Distance'] = pd.to_numeric(X_test['Distance'], errors='coerce')
+
 # Calculate the actual avg pace (in seconds per km)
 actual_avg_pace = y_test / X_test['Distance']
 
@@ -375,6 +357,23 @@ plt.ylabel('Predicted Average Pace (minutes per km)')
 plt.title('Actual vs. Predicted Average Pace')
 plt.legend()
 plt.show()
+
+
+
+
+# Kirill's part
+---------------------------------------------------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+
 
 
 
